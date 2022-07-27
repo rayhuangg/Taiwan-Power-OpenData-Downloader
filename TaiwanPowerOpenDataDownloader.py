@@ -85,13 +85,13 @@ def create_title_row_list():
     title[0] = ["能源別", "機組別", "機組容量"]
 
     for i in range(len(json_data["aaData"])):
-        # 添加能源類別
+        # 添加能源類別，並去除括號
         title[i*2+1][0] = remove_brackets(json_data["aaData"][i][0])
 
         # 添加發電機組名稱，若名字內有括號(含註解)便將其去除
         title[i*2+1][1] = remove_brackets(json_data["aaData"][i][1])
 
-        # 添加機組容量
+        # 添加機組容量，並去除括號
         title[i*2+1][2] = remove_brackets(json_data["aaData"][i][2])
 
         # 空白欄 (機組狀態)，留下空白以免被後方機組狀態覆蓋
@@ -152,6 +152,11 @@ def append_current_data_into_list():
     with open("json/001.json", "r", encoding='utf-8') as json_obj:
         json_data = json.load(json_obj)
 
+    # 平常測試時若已有此時刻的資料，便跳過不寫入
+    if csv_content[0][-1] == json_data[""][-5:]:
+        print("duplicate data, skip download")
+        return None, None
+
     csv_content[0].append(json_data[""][-5:]) # 目前時間，日期不紀錄
 
     # 建立只有能源別+機組別的列表，以便後方查找位置
@@ -184,6 +189,9 @@ def fill_in_latest_content():
     today = date.today()
     filename = today.strftime("%Y_%m_%d")
     content, download_name = append_current_data_into_list() # 放在外面先行抓取資料 否則open新的csv後便會被覆蓋
+    # 若是重複時間(空資料)的話便不寫入，直接跳過結束程式
+    if content == None:
+        return
 
     # 寫入big5版本
     with open(f"csv(big5)/{filename}.csv", "w", encoding='Big5', newline='') as csvfile_big5:
@@ -195,12 +203,10 @@ def fill_in_latest_content():
         writer = csv.writer(csvfile_utf8)
         writer.writerows(content)
 
-    print(f"download {download_name} data", end='')
+    print(f"download {download_name} data .....done")
 
 
 #  =========== 整體程式入口 ===========
-
-# 檢查是否已存在今日的csv檔案，是的話便僅添加資料，否則新創立csv
 def main():
     # 印出現在時間
     now = datetime.now()
@@ -211,23 +217,21 @@ def main():
         today = date.today()
         filename = today.strftime("%Y_%m_%d")
 
+        # 檢查是否已存在今日的csv檔案，是的話便僅添加資料，否則新創立csv
         if os.path.isfile(f"csv(big5)/{filename}.csv"):
             download_opendata()
             fill_in_latest_content()
-            print("  .....done")
         else:
             download_opendata()
             create_csv_file()
             fill_in_latest_content()
-            print("  .....done")
 
     except Exception as e:
         print("ERROR:", repr(e))
 
 
-
 # 設定定時器，每小時的x7分各自執行一次\
-# TODO(6分可以再調整，不確定幾分下載最安全)
+# TODO(7分可以再調整，不確定幾分下載最安全)
 schedule.every().hour.at("07:00").do(main)
 schedule.every().hour.at("17:00").do(main)
 schedule.every().hour.at("27:00").do(main)
