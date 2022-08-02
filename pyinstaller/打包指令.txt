@@ -1,1 +1,0 @@
-Pyinstaller -F -i logo.ico TaiwanPowerOpenDataDownloader

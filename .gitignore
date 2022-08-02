@@ -165,3 +165,4 @@ csv(big5)/
 csv(utf-8)/
 json/
 test code/
+pyinstaller/
