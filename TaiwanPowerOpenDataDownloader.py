@@ -6,16 +6,18 @@
     待解決: 跨日23:50檔案跑到隔天去(偶發,台電資料上傳不及時)
 '''
 
+import traceback
 import requests
 import json
 import csv
 import os
 import schedule
 import time
+import pandas as pd
 from datetime import date, datetime
 
 
-opendata_url   = "http://data.taipower.com.tw/opendata01/apply/file/d006001/001.txt"
+opendata_url   = "https://data.taipower.com.tw/opendata01/apply/file/d006001/001.json" # 主要網址，20230621後將原本的txt檔案修改成json了，造成網址變更
 percentage_url = "https://www.taipower.com.tw/d006/loadGraph/loadGraph/data/loadpara.json"
 
 
@@ -129,7 +131,7 @@ def create_csv_file():
     filename = today.strftime("%Y_%m_%d")
 
     # 寫入標題欄，加入newline='' 才不會有多餘空白欄位
-    with open(f"csv(big5)/{filename}.csv", "w", encoding='Big5', newline='') as csvfile:
+    with open(f"csv(utf-8)/{filename}.csv", "w", encoding='utf-8', newline='') as csvfile:
         title = create_title_row_list()
         writer = csv.writer(csvfile)
         writer.writerows(title)
@@ -139,7 +141,7 @@ def create_csv_file():
 def get_csv_content():
     today = date.today()
     filename = today.strftime("%Y_%m_%d")
-    with open(f"csv(big5)/{filename}.csv", "r", newline='', encoding='Big5') as csvfile:
+    with open(f"csv(utf-8)/{filename}.csv", "r", newline='', encoding='utf-8') as csvfile:
         current_content = list(csv.reader(csvfile))
 
     return current_content
@@ -193,15 +195,16 @@ def fill_in_latest_content():
     if content == None:
         return
 
-    # 寫入big5版本
-    with open(f"csv(big5)/{filename}.csv", "w", encoding='Big5', newline='') as csvfile_big5:
-        writer = csv.writer(csvfile_big5)
-        writer.writerows(content)
-
     # 寫入utf8版本
     with open(f"csv(utf-8)/{filename}.csv", "w", encoding='utf-8', newline='') as csvfile_utf8:
         writer = csv.writer(csvfile_utf8)
         writer.writerows(content)
+
+    # 將utf8版本用pandas轉為excel格式
+    csv_file_path = f"csv(utf-8)/{filename}.csv"
+    df = pd.read_csv(csv_file_path)
+    excel_file_path = f"csv(big5)/{filename}.xlsx"
+    df.to_excel(excel_file_path, index=False)
 
     print(f"download {download_name} data .....done")
 
@@ -218,7 +221,7 @@ def main():
         filename = today.strftime("%Y_%m_%d")
 
         # 檢查是否已存在今日的csv檔案，是的話便僅添加資料，否則新創立csv
-        if os.path.isfile(f"csv(big5)/{filename}.csv"):
+        if os.path.isfile(f"csv(utf-8)/{filename}.csv"):
             download_opendata()
             fill_in_latest_content()
         else:
@@ -227,11 +230,10 @@ def main():
             fill_in_latest_content()
 
     except Exception as e:
-        print("ERROR:", repr(e))
+        traceback.print_exc()
 
 
-# 設定定時器，每小時的x7分各自執行一次\
-# TODO(7分可以再調整，不確定幾分下載最安全)
+# 設定定時器，每小時的x7分各自執行一次
 schedule.every().hour.at("07:00").do(main)
 schedule.every().hour.at("17:00").do(main)
 schedule.every().hour.at("27:00").do(main)
