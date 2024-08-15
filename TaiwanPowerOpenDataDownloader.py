@@ -17,7 +17,7 @@ import pandas as pd
 from datetime import date, datetime
 
 
-opendata_url   = "https://data.taipower.com.tw/opendata01/apply/file/d006001/001.json" # 主要網址，20230621後將原本的txt檔案修改成json了，造成網址變更
+opendata_url   = "https://service.taipower.com.tw/data/opendata/apply/file/d006001/001.json" # 主要網址，20230621後將原本的txt檔案修改成json了，造成網址變更
 percentage_url = "https://www.taipower.com.tw/d006/loadGraph/loadGraph/data/loadpara.json"
 
 
@@ -39,7 +39,7 @@ def download_opendata():
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"}
     res = requests.get(opendata_url, headers=headers)
-    res.encoding = 'utf-8'
+    res.encoding = "utf-8-sig"
 
     print("status_code:", res.status_code, "| ", end=" ")
 
