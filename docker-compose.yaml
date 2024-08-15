@@ -1,0 +1,7 @@
+services:
+  taipower:
+    image: taipower:v0.1
+    container_name: taipower
+    volumes:
+      - /Users/huangtingray/MyData/code/Taiwan-Power-OpenData-Downloader:/code
+    command: python3 TaiwanPowerOpenDataDownloader.py

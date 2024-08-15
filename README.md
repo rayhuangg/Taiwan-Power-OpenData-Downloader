@@ -8,3 +8,18 @@
 * open data平台(台電系統(含外購電力)各機組發電量即時資訊): https://data.gov.tw/dataset/8931
 
 觀察公開資料平台JSON [網址](https://service.taipower.com.tw/data/opendata/apply/file/d006001/001.json) ，資料內的內容與台電即時更新的網頁相同，因此對此JSON檔案進行處理
+
+
+### Docker
+
+docker run
+
+```bash
+docker run -it --rm --name "taipower" -v /Users/huangtingray/MyData/code/Taiwan-Power-OpenData-Downloader:/Taiwan-Power-OpenData-Downloader  taipower:v0.1 bash
+```
+
+or 使用docker-compose
+
+```bash
+docker-compose up -d
+```
