@@ -167,3 +167,4 @@ json/
 test code/
 pyinstaller/
 history version/*
+*.exe
