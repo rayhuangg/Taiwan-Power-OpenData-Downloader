@@ -2,7 +2,6 @@
 
 '''
     每十分鐘定時自動下載台電各機組發電量Open Data, 以及台電今日電力資訊, 並轉為Excel可讀取之csv檔案儲存
-    待解決: 跨日23:50檔案跑到隔天去(偶發,台電資料上傳不及時)
 '''
 
 import traceback
@@ -22,14 +21,15 @@ percentage_url = "https://www.taipower.com.tw/d006/loadGraph/loadGraph/data/load
 
 # =========== 創立資料夾 ===========
 def create_folder():
-    if not os.path.isdir('csv(big5)'):
-        os.mkdir('csv(big5)')
-
+    if not os.path.isdir('xlsx(big-5)'):
+        os.makedirs('xlsx(big-5)', exist_ok = True)     
+        
     if not os.path.isdir('csv(utf-8)'):
-        os.mkdir('csv(utf-8)')
+        os.makedirs('csv(utf-8)', exist_ok = True) 
 
     if not os.path.isdir('json'):
-        os.mkdir('json')
+        os.makedirs('json', exist_ok = True) 
+        
 
 
 # ===========下載txt並轉為json格式 ===========
@@ -87,13 +87,13 @@ def create_title_row_list():
 
     for i in range(len(json_data["aaData"])):
         # 添加能源類別，並去除括號
-        title[i*2+1][0] = remove_brackets(json_data["aaData"][i][0])
+        title[i*2+1][0] = remove_brackets(json_data["aaData"][i]["機組類型"])
 
         # 添加發電機組名稱，若名字內有括號(含註解)便將其去除
-        title[i*2+1][1] = remove_brackets(json_data["aaData"][i][1])
+        title[i*2+1][1] = remove_brackets(json_data["aaData"][i]["機組名稱"])
 
         # 添加機組容量，並去除括號
-        title[i*2+1][2] = remove_brackets(json_data["aaData"][i][2])
+        title[i*2+1][2] = remove_brackets(json_data["aaData"][i]["裝置容量(MW)"])
 
         # 空白欄 (機組狀態)，留下空白以免被後方機組狀態覆蓋
         title[i*2+2] = ["", "", ""]
@@ -154,22 +154,23 @@ def append_current_data_into_list():
         json_data = json.load(json_obj)
 
     # 平常測試時若已有此時刻的資料，便跳過不寫入
-    if csv_content[0][-1] == json_data[""][-5:]:
+    api_upload_time = json_data["DateTime"][-8:-3] # ex DataTime: "2024-08-31T15:30:00"
+    if csv_content[0][-1] == api_upload_time: 
         print("duplicate data, skip download")
         return None, None
 
-    csv_content[0].append(json_data[""][-5:]) # 目前時間，日期不紀錄
+    csv_content[0].append(api_upload_time) # 目前時間，日期不紀錄
 
     # 建立只有能源別+機組別的列表，以便後方查找位置
     only_name_list = [[csv_content[i][0], csv_content[i][1]] for i in range(len(csv_content))]
     for i in range(len(json_data["aaData"])):
 
         # 先存下機組發電量及狀態
-        power_value  = json_data["aaData"][i][3]
-        power_status = json_data["aaData"][i][5]
+        power_value  = json_data["aaData"][i]["淨發電量(MW)"]
+        power_status = json_data["aaData"][i]["備註"]
 
         # 查找機組名稱在csv的第幾橫列
-        title = [remove_brackets(json_data["aaData"][i][0]), remove_brackets(json_data["aaData"][i][1])]
+        title = [remove_brackets(json_data["aaData"][i]["機組類型"]), remove_brackets(json_data["aaData"][i]["機組名稱"])]
         content_index = only_name_list.index(title)
 
         # 寫入資料
@@ -181,8 +182,8 @@ def append_current_data_into_list():
     usage_percentage, maxi_sply_capacity = download_percentage()
     csv_content[-2].append(maxi_sply_capacity) # 倒數第二欄
     csv_content[-1].append(usage_percentage)   # 倒數第一欄
-
-    return csv_content, json_data[""][-11:] # 回傳填入的list內容及時間
+    
+    return csv_content, api_upload_time # 回傳填入的list內容及時間
 
 
 #  =========== 填入內容資料 ===========
@@ -190,6 +191,7 @@ def fill_in_latest_content():
     today = date.today()
     filename = today.strftime("%Y_%m_%d")
     content, download_name = append_current_data_into_list() # 放在外面先行抓取資料 否則open新的csv後便會被覆蓋
+   
     # 若是重複時間(空資料)的話便不寫入，直接跳過結束程式
     if content == None:
         return
@@ -202,7 +204,7 @@ def fill_in_latest_content():
     # 將utf8版本用pandas轉為excel格式
     csv_file_path = f"csv(utf-8)/{filename}.csv"
     df = pd.read_csv(csv_file_path)
-    excel_file_path = f"csv(big5)/{filename}.xlsx"
+    excel_file_path = f"xlsx(big-5)/{filename}.xlsx"
     df.to_excel(excel_file_path, index=False)
 
     print(f"download {download_name} data .....done")
