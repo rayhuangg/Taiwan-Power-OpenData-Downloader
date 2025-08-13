@@ -1,7 +1,12 @@
 services:
   taipower:
-    image: taipower:v0.1
+    build: .
     container_name: taipower
+    environment:
+      - TZ=Asia/Taipei
     volumes:
-      - /Users/huangtingray/MyData/code/Taiwan-Power-OpenData-Downloader:/code
+      - ./csv(big5):/code/xlsx(big-5)
+      - ./csv(utf-8):/code/csv(utf-8)
+      - ./json:/code/json
+    restart: unless-stopped
     command: python3 TaiwanPowerOpenDataDownloader.py

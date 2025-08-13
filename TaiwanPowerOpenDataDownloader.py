@@ -13,23 +13,43 @@ import schedule
 import time
 import pandas as pd
 from datetime import date, datetime
+import pytz
+import sys
 
+# 強制輸出立即顯示
+sys.stdout.flush()
+
+print("🚀 Taiwan Power Data Downloader 啟動中...")
+print(f"⏰ 啟動時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 opendata_url   = "https://service.taipower.com.tw/data/opendata/apply/file/d006001/001.json" # 主要網址，20230621後將原本的txt檔案修改成json了，造成網址變更
 percentage_url = "https://www.taipower.com.tw/d006/loadGraph/loadGraph/data/loadpara.json"
+
+# 設定台灣時區
+TAIWAN_TZ = pytz.timezone('Asia/Taipei')
+print(f"🌏 時區設定: {TAIWAN_TZ}")
+
+# 取得台灣時區的今日日期
+def get_taiwan_date():
+    taiwan_now = datetime.now(TAIWAN_TZ)
+    return taiwan_now.date()
+
+# 取得台灣時區的當前時間
+def get_taiwan_datetime():
+    return datetime.now(TAIWAN_TZ)
 
 
 # =========== 創立資料夾 ===========
 def create_folder():
     if not os.path.isdir('xlsx(big-5)'):
-        os.makedirs('xlsx(big-5)', exist_ok = True)     
-        
+        os.makedirs('xlsx(big-5)', exist_ok = True)
+
     if not os.path.isdir('csv(utf-8)'):
-        os.makedirs('csv(utf-8)', exist_ok = True) 
+        os.makedirs('csv(utf-8)', exist_ok = True)
 
     if not os.path.isdir('json'):
-        os.makedirs('json', exist_ok = True) 
-        
+        os.makedirs('json', exist_ok = True)
+
 
 
 # ===========下載txt並轉為json格式 ===========
@@ -126,7 +146,7 @@ def create_title_row_list():
 
 #  =========== 每天建立一個新的csv檔案 ===========
 def create_csv_file():
-    today = date.today()
+    today = get_taiwan_date()
     filename = today.strftime("%Y_%m_%d")
 
     # 寫入標題欄，加入newline='' 才不會有多餘空白欄位
@@ -138,7 +158,7 @@ def create_csv_file():
 
 # ===========讀取現有資料轉為列表 ===========
 def get_csv_content():
-    today = date.today()
+    today = get_taiwan_date()
     filename = today.strftime("%Y_%m_%d")
     with open(f"csv(utf-8)/{filename}.csv", "r", newline='', encoding='utf-8') as csvfile:
         current_content = list(csv.reader(csvfile))
@@ -155,7 +175,7 @@ def append_current_data_into_list():
 
     # 平常測試時若已有此時刻的資料，便跳過不寫入
     api_upload_time = json_data["DateTime"][-8:-3] # ex DataTime: "2024-08-31T15:30:00"
-    if csv_content[0][-1] == api_upload_time: 
+    if csv_content[0][-1] == api_upload_time:
         print("duplicate data, skip download")
         return None, None
 
@@ -182,16 +202,16 @@ def append_current_data_into_list():
     usage_percentage, maxi_sply_capacity = download_percentage()
     csv_content[-2].append(maxi_sply_capacity) # 倒數第二欄
     csv_content[-1].append(usage_percentage)   # 倒數第一欄
-    
+
     return csv_content, api_upload_time # 回傳填入的list內容及時間
 
 
 #  =========== 填入內容資料 ===========
 def fill_in_latest_content():
-    today = date.today()
+    today = get_taiwan_date()
     filename = today.strftime("%Y_%m_%d")
     content, download_name = append_current_data_into_list() # 放在外面先行抓取資料 否則open新的csv後便會被覆蓋
-   
+
     # 若是重複時間(空資料)的話便不寫入，直接跳過結束程式
     if content == None:
         return
@@ -212,13 +232,13 @@ def fill_in_latest_content():
 
 #  =========== 整體程式入口 ===========
 def main():
-    # 印出現在時間
-    now = datetime.now()
+    # 印出現在時間（台灣時區）
+    now = get_taiwan_datetime()
     current_time = now.strftime("%m%d_%H:%M:%S")
     print(current_time,"| ", end="")
 
     try:
-        today = date.today()
+        today = get_taiwan_date()
         filename = today.strftime("%Y_%m_%d")
 
         # 檢查是否已存在今日的csv檔案，是的話便僅添加資料，否則新創立csv
@@ -231,10 +251,13 @@ def main():
             fill_in_latest_content()
 
     except Exception as e:
+        print(f"❌ 程式執行錯誤: {str(e)}")
         traceback.print_exc()
+        sys.stdout.flush()
 
 
 # 設定定時器，每小時的x7分各自執行一次
+print("⏰ 設定排程任務...")
 schedule.every().hour.at("07:00").do(main)
 schedule.every().hour.at("17:00").do(main)
 schedule.every().hour.at("27:00").do(main)
@@ -242,11 +265,25 @@ schedule.every().hour.at("37:00").do(main)
 schedule.every().hour.at("47:00").do(main)
 schedule.every().hour.at("57:00").do(main)
 
+print("📋 排程任務已設定完成")
+print("📋 執行時間: 每小時的 07、17、27、37、47、57 分")
+sys.stdout.flush()
+
 # 只執行按下執行的第一次 馬上下載資料以供確認
+print("🔄 執行首次資料下載...")
+sys.stdout.flush()
 main()
+
+print("✅ 首次下載完成，進入定時循環...")
+sys.stdout.flush()
 
 # 利用schedule.idle_seconds()計算與下次任務間隔時間，以提供sleep秒數，應比較不會占用資源
 while 1:
     n = schedule.idle_seconds()
-    time.sleep(n)
+    if n is not None and n > 0:
+        next_run = schedule.next_run()
+        if next_run:
+            print(f"⏳ 下次執行時間: {next_run.strftime('%Y-%m-%d %H:%M:%S')} (還有 {int(n/60)} 分鐘)")
+            sys.stdout.flush()
+    time.sleep(min(n or 60, 60))  # 最多等待60秒，避免過長等待
     schedule.run_pending()
