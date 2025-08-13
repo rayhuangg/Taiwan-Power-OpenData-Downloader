@@ -28,18 +28,20 @@ RUN uv pip install --system --no-cache -r requirements.txt
 # 複製程式檔案
 COPY . /code
 
-# 建立必要的目錄
+# 使用非 root 用戶運行（安全最佳實踐）
+RUN useradd -m -u 1000 taipower && \
+    chown -R taipower:taipower /code
+
+# 建立必要的目錄並設定正確權限
 RUN mkdir -p csv\(utf-8\) csv\(big5\) json && \
-    chmod 755 csv\(utf-8\) csv\(big5\) json
+    chmod 755 csv\(utf-8\) csv\(big5\) json && \
+    chown -R taipower:taipower csv\(utf-8\) csv\(big5\) json
+
+USER taipower
 
 # 健康檢查
 HEALTHCHECK --interval=5m --timeout=30s --start-period=30s --retries=3 \
     CMD python3 -c "import sys; sys.exit(0)" || exit 1
-
-# 使用非 root 用戶運行（安全最佳實踐）
-RUN useradd -m -u 1000 taipower && \
-    chown -R taipower:taipower /code
-USER taipower
 
 CMD ["python3", "TaiwanPowerOpenDataDownloader.py"]
 

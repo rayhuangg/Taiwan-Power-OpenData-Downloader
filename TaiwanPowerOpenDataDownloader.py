@@ -41,14 +41,21 @@ def get_taiwan_datetime():
 
 # =========== 創立資料夾 ===========
 def create_folder():
-    if not os.path.isdir('xlsx(big-5)'):
-        os.makedirs('xlsx(big-5)', exist_ok = True)
-
-    if not os.path.isdir('csv(utf-8)'):
-        os.makedirs('csv(utf-8)', exist_ok = True)
-
-    if not os.path.isdir('json'):
-        os.makedirs('json', exist_ok = True)
+    try:
+        folders = ['xlsx(big-5)', 'csv(utf-8)', 'json']
+        for folder in folders:
+            if not os.path.isdir(folder):
+                os.makedirs(folder, exist_ok=True)
+                # 確保目錄權限正確
+                os.chmod(folder, 0o755)
+                print(f"📁 創建目錄: {folder}")
+    except PermissionError as e:
+        print(f"❌ 權限錯誤: {e}")
+        print("💡 提示: 請檢查目錄權限或在 Docker 中以適當權限運行")
+        raise
+    except Exception as e:
+        print(f"❌ 創建目錄時發生錯誤: {e}")
+        raise
 
 
 
@@ -64,10 +71,18 @@ def download_opendata():
 
     # 下載成功才繼續執行
     if res.status_code == 200:
-        # 利用json loads把檔案轉為json格式，並用dump格式化輸出至文件
-        with open("json/001.json", "w", encoding='utf-8') as file:
-            json_file = json.loads(res.text)
-            json.dump(json_file, file, indent=4, ensure_ascii=False) # 不使用ascii編碼 才能顯示中文
+        try:
+            # 利用json loads把檔案轉為json格式，並用dump格式化輸出至文件
+            with open("json/001.json", "w", encoding='utf-8') as file:
+                json_file = json.loads(res.text)
+                json.dump(json_file, file, indent=4, ensure_ascii=False) # 不使用ascii編碼 才能顯示中文
+        except PermissionError as e:
+            print(f"❌ 檔案寫入權限錯誤: {e}")
+            print("💡 提示: 請檢查 json/ 目錄的寫入權限")
+            raise
+        except Exception as e:
+            print(f"❌ 檔案寫入錯誤: {e}")
+            raise
 
     # 不是200的話則代表網路連線有錯誤，發出錯誤訊息等待下次連線
     else:
