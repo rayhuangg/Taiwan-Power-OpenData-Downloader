@@ -280,10 +280,5 @@ sys.stdout.flush()
 # 利用schedule.idle_seconds()計算與下次任務間隔時間，以提供sleep秒數，應比較不會占用資源
 while 1:
     n = schedule.idle_seconds()
-    if n is not None and n > 0:
-        next_run = schedule.next_run()
-        if next_run:
-            print(f"⏳ 下次執行時間: {next_run.strftime('%Y-%m-%d %H:%M:%S')} (還有 {int(n/60)} 分鐘)")
-            sys.stdout.flush()
     time.sleep(min(n or 60, 60))  # 最多等待60秒，避免過長等待
     schedule.run_pending()

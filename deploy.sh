@@ -44,7 +44,7 @@ echo "✅ 在正確的專案目錄中"
 if [ "$UPDATE_MODE" = false ]; then
     echo "📁 創建必要的目錄..."
     mkdir -p "csv(big5)" "csv(utf-8)" json
-    
+
     # 設定目錄權限
     echo "🔧 設定目錄權限..."
     chmod 755 "csv(big5)" "csv(utf-8)" json

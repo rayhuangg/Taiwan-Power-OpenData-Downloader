@@ -6,11 +6,16 @@ ENV TZ=Asia/Taipei
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONIOENCODING=utf-8
 
-# 安裝時區相關套件
+# 安裝時區相關套件和 uv
 RUN apt-get update && \
-    apt-get install -y tzdata && \
+    apt-get install -y --no-install-recommends \
+        tzdata \
+        curl \
+        ca-certificates && \
     ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
+    # 安裝 uv 到系統路徑
+    curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR="/usr/local/bin" sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -18,7 +23,7 @@ WORKDIR /code
 
 # 先複製 requirements.txt 並安裝依賴（利用 Docker 快取）
 COPY requirements.txt /code/
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --system --no-cache -r requirements.txt
 
 # 複製程式檔案
 COPY . /code

@@ -2,6 +2,32 @@
 
 當您修改了 `TaiwanPowerOpenDataDownloader.py` 或其他檔案後，需要重新建立 Docker 映像並重啟容器才能使修改生效。
 
+## ⚡ 使用 UV 加速套件安裝
+
+專案已優化使用 `uv` 替代 `pip`，套件安裝速度提升 10-100 倍！
+
+### 套件安裝速度比較
+
+| 套件管理器 | 安裝時間 | 特點 |
+|-----------|----------|------|
+| pip | 60-120 秒 | Python 標準套件管理器 |
+| uv | 5-15 秒 | Rust 實現，極速安裝 |
+
+### 可用的 Dockerfile 版本
+
+1. **標準版 `Dockerfile`**（推薦）
+   - 使用 `uv` 加速安裝
+   - 適合大部分情況
+
+2. **多階段建構版 `Dockerfile.multistage`**
+   - 映像更小、更安全
+   - 適合生產環境
+
+```bash
+# 使用多階段建構版本
+docker build -f Dockerfile.multistage -t taipower:latest .
+```
+
 ## 快速更新指令
 
 ### 方法一：使用部署腳本（推薦）
